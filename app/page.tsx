@@ -17,6 +17,9 @@ import {
   CheckCircle2
 } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function HomePage() {
   let packages: any[] = [];
   let hotels: any[] = [];
