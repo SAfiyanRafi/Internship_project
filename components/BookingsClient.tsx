@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatMoney, formatDate, bookingNo } from '@/lib/utils';
-import { BookOpen, Download, CheckCircle2, AlertCircle } from 'lucide-react';
+import { BookOpen, Download, Edit, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface BookingsClientProps {
   initialBookings: any[];
@@ -22,6 +22,7 @@ export default function BookingsClient({
 }: BookingsClientProps) {
   const router = useRouter();
   const [bookings, setBookings] = useState(initialBookings);
+  const [editingBooking, setEditingBooking] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -37,6 +38,11 @@ export default function BookingsClient({
     'Cancelled',
   ];
 
+  const refreshList = async () => {
+    const updatedRes = await fetch('/api/bookings');
+    if (updatedRes.ok) setBookings(await updatedRes.json());
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -44,6 +50,7 @@ export default function BookingsClient({
 
     const form = e.currentTarget;
     const body = {
+      id: editingBooking ? editingBooking.id : undefined,
       branchId: Number((form.elements.namedItem('branch_id') as HTMLSelectElement).value),
       customerId: Number((form.elements.namedItem('customer_id') as HTMLSelectElement).value),
       groupId: (form.elements.namedItem('group_id') as HTMLInputElement).value
@@ -70,18 +77,33 @@ export default function BookingsClient({
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create booking');
+      if (!res.ok) throw new Error(data.error || 'Failed to save booking');
 
-      setMsg({ type: 'success', text: 'Booking created successfully!' });
+      setMsg({ type: 'success', text: editingBooking ? 'Booking updated successfully!' : 'Booking created successfully!' });
+      setEditingBooking(null);
       form.reset();
+      await refreshList();
       router.refresh();
-
-      const updatedRes = await fetch('/api/bookings');
-      if (updatedRes.ok) setBookings(await updatedRes.json());
     } catch (err: any) {
-      setMsg({ type: 'error', text: err.message || 'Error creating booking' });
+      setMsg({ type: 'error', text: err.message || 'Error saving booking' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm(`Are you sure you want to delete Booking ${bookingNo(id)}?`)) return;
+
+    try {
+      const res = await fetch(`/api/bookings?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete booking');
+
+      setMsg({ type: 'success', text: `Booking ${bookingNo(id)} deleted.` });
+      await refreshList();
+      router.refresh();
+    } catch (err: any) {
+      setMsg({ type: 'error', text: err.message || 'Error deleting booking' });
     }
   };
 
@@ -102,9 +124,18 @@ export default function BookingsClient({
 
       {/* Booking Form Panel */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-800">
-          <BookOpen className="w-5 h-5 text-amber-400" />
-          <h2 className="text-lg font-bold text-white">Create New Booking</h2>
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <BookOpen className="w-5 h-5 text-amber-400" />
+            <h2 className="text-lg font-bold text-white">
+              {editingBooking ? `Edit Booking (${bookingNo(editingBooking.id)})` : 'Create New Booking'}
+            </h2>
+          </div>
+          {editingBooking && (
+            <button onClick={() => setEditingBooking(null)} className="text-xs text-slate-400 hover:text-white underline">
+              Cancel Edit
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -112,6 +143,7 @@ export default function BookingsClient({
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Branch</label>
             <select
               name="branch_id"
+              defaultValue={editingBooking?.branchId || branches[0]?.id}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             >
               {branches.map((b) => (
@@ -125,6 +157,7 @@ export default function BookingsClient({
             <select
               name="customer_id"
               required
+              defaultValue={editingBooking?.customerId || ''}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             >
               <option value="">-- Choose Customer --</option>
@@ -141,6 +174,7 @@ export default function BookingsClient({
             <input
               type="number"
               name="group_id"
+              defaultValue={editingBooking?.groupId || ''}
               placeholder="e.g. 101"
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             />
@@ -150,6 +184,7 @@ export default function BookingsClient({
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Package</label>
             <select
               name="package_id"
+              defaultValue={editingBooking?.packageId || ''}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             >
               <option value="">Custom Package</option>
@@ -164,6 +199,7 @@ export default function BookingsClient({
             <input
               type="date"
               name="departure_date"
+              defaultValue={editingBooking?.departureDate || ''}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             />
           </div>
@@ -173,6 +209,7 @@ export default function BookingsClient({
             <input
               type="date"
               name="return_date"
+              defaultValue={editingBooking?.returnDate || ''}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             />
           </div>
@@ -183,6 +220,7 @@ export default function BookingsClient({
               type="number"
               name="total_price"
               required
+              defaultValue={editingBooking?.totalPrice || ''}
               placeholder="250000"
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             />
@@ -193,7 +231,7 @@ export default function BookingsClient({
             <input
               type="number"
               name="discount"
-              defaultValue={0}
+              defaultValue={editingBooking?.discount || 0}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             />
           </div>
@@ -202,6 +240,7 @@ export default function BookingsClient({
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Booking Status</label>
             <select
               name="status"
+              defaultValue={editingBooking?.status || 'Booked'}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             >
               {statuses.map((s) => (
@@ -215,6 +254,7 @@ export default function BookingsClient({
             <input
               type="text"
               name="pnr"
+              defaultValue={editingBooking?.pnr || ''}
               placeholder="X7Y9Z2"
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             />
@@ -225,6 +265,7 @@ export default function BookingsClient({
             <input
               type="text"
               name="flight_no"
+              defaultValue={editingBooking?.flightNo || ''}
               placeholder="SV-735"
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             />
@@ -235,6 +276,7 @@ export default function BookingsClient({
             <textarea
               name="notes"
               rows={2}
+              defaultValue={editingBooking?.notes || ''}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500 resize-none"
             ></textarea>
           </div>
@@ -245,7 +287,7 @@ export default function BookingsClient({
               disabled={loading}
               className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/20 disabled:opacity-50"
             >
-              {loading ? 'Creating...' : 'Create Booking'}
+              {loading ? 'Saving...' : editingBooking ? 'Update Booking' : 'Create Booking'}
             </button>
           </div>
         </form>
@@ -277,12 +319,13 @@ export default function BookingsClient({
                 <th className="p-4 font-semibold">Paid</th>
                 <th className="p-4 font-semibold">Balance</th>
                 <th className="p-4 font-semibold">Status</th>
+                <th className="p-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
               {bookings.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-6 text-center text-slate-500 italic">
+                  <td colSpan={9} className="p-6 text-center text-slate-500 italic">
                     No bookings created yet.
                   </td>
                 </tr>
@@ -305,6 +348,23 @@ export default function BookingsClient({
                         <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
                           {b.status}
                         </span>
+                      </td>
+                      <td className="p-4 text-right space-x-3">
+                        <button
+                          onClick={() => {
+                            setEditingBooking(b);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="text-amber-400 hover:underline font-semibold inline-flex items-center gap-1"
+                        >
+                          <Edit className="w-3 h-3" /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(b.id)}
+                          className="text-rose-400 hover:underline font-semibold inline-flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" /> Delete
+                        </button>
                       </td>
                     </tr>
                   );

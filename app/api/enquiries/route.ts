@@ -61,3 +61,21 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: error.message || 'Failed to update enquiry' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = Number(searchParams.get('id'));
+
+    if (!id) return NextResponse.json({ error: 'Enquiry ID is required' }, { status: 400 });
+
+    await prisma.enquiry.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to delete enquiry' }, { status: 500 });
+  }
+}

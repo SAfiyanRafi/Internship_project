@@ -24,6 +24,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
+    const id = body.id ? Number(body.id) : null;
     const city = String(body.city || '').trim();
     const name = String(body.name || '').trim();
 
@@ -31,19 +32,43 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'City and Hotel Name are required' }, { status: 400 });
     }
 
-    const hotel = await prisma.hotel.create({
-      data: {
-        city,
-        name,
-        distance: body.distance ? String(body.distance) : null,
-        phone: body.phone ? String(body.phone) : null,
-        notes: body.notes ? String(body.notes) : null,
-        isPublic: Boolean(body.isPublic),
-      },
-    });
+    const data = {
+      city,
+      name,
+      distance: body.distance ? String(body.distance) : null,
+      phone: body.phone ? String(body.phone) : null,
+      notes: body.notes ? String(body.notes) : null,
+      isPublic: Boolean(body.isPublic),
+    };
 
-    return NextResponse.json({ success: true, hotelId: hotel.id });
+    if (id) {
+      await prisma.hotel.update({ where: { id }, data });
+      return NextResponse.json({ success: true, hotelId: id });
+    } else {
+      const hotel = await prisma.hotel.create({ data });
+      return NextResponse.json({ success: true, hotelId: hotel.id });
+    }
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to save hotel' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  const session = await getSession();
+  if (!session || !['Super Admin', 'Manager'].includes(session.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = Number(searchParams.get('id'));
+
+    if (!id) return NextResponse.json({ error: 'Hotel ID is required' }, { status: 400 });
+
+    await prisma.hotel.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to delete hotel' }, { status: 500 });
   }
 }

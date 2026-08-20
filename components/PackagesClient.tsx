@@ -3,13 +3,19 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatMoney } from '@/lib/utils';
-import { Package, Download, Plus, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Package, Download, Edit, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function PackagesClient({ initialPackages, currency }: { initialPackages: any[]; currency: string }) {
   const router = useRouter();
   const [packages, setPackages] = useState(initialPackages);
+  const [editingPkg, setEditingPkg] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const refreshList = async () => {
+    const updatedRes = await fetch('/api/packages');
+    if (updatedRes.ok) setPackages(await updatedRes.json());
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -18,6 +24,7 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
 
     const form = e.currentTarget;
     const body = {
+      id: editingPkg ? editingPkg.id : undefined,
       name: (form.elements.namedItem('name') as HTMLInputElement).value,
       packageType: (form.elements.namedItem('package_type') as HTMLSelectElement).value,
       days: Number((form.elements.namedItem('days') as HTMLInputElement).value),
@@ -43,16 +50,31 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save package');
 
-      setMsg({ type: 'success', text: 'Package created successfully!' });
+      setMsg({ type: 'success', text: editingPkg ? 'Package updated successfully!' : 'Package created successfully!' });
+      setEditingPkg(null);
       form.reset();
+      await refreshList();
       router.refresh();
-
-      const updatedRes = await fetch('/api/packages');
-      if (updatedRes.ok) setPackages(await updatedRes.json());
     } catch (err: any) {
       setMsg({ type: 'error', text: err.message || 'Error saving package' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: number, name: string) => {
+    if (!confirm(`Are you sure you want to delete package "${name}"?`)) return;
+
+    try {
+      const res = await fetch(`/api/packages?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete package');
+
+      setMsg({ type: 'success', text: `Package "${name}" deleted.` });
+      await refreshList();
+      router.refresh();
+    } catch (err: any) {
+      setMsg({ type: 'error', text: err.message || 'Error deleting package' });
     }
   };
 
@@ -73,9 +95,18 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
 
       {/* Package Form Panel */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-800">
-          <Package className="w-5 h-5 text-amber-400" />
-          <h2 className="text-lg font-bold text-white">Add New Package</h2>
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <Package className="w-5 h-5 text-amber-400" />
+            <h2 className="text-lg font-bold text-white">
+              {editingPkg ? `Edit Package (#${editingPkg.id})` : 'Add New Package'}
+            </h2>
+          </div>
+          {editingPkg && (
+            <button onClick={() => setEditingPkg(null)} className="text-xs text-slate-400 hover:text-white underline">
+              Cancel Edit
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -85,6 +116,7 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
               type="text"
               name="name"
               required
+              defaultValue={editingPkg?.name || ''}
               placeholder="e.g. Star Umrah Package 14 Days"
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             />
@@ -94,6 +126,7 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Package Type</label>
             <select
               name="package_type"
+              defaultValue={editingPkg?.packageType || 'Umrah'}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             >
               <option value="Umrah">Umrah</option>
@@ -107,7 +140,7 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
             <input
               type="number"
               name="days"
-              defaultValue={14}
+              defaultValue={editingPkg?.days || 14}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             />
           </div>
@@ -118,6 +151,7 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
               type="number"
               name="price"
               required
+              defaultValue={editingPkg?.price || ''}
               placeholder="250000"
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             />
@@ -128,6 +162,7 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
             <input
               type="text"
               name="airline"
+              defaultValue={editingPkg?.airline || ''}
               placeholder="Saudi Airlines / PIA"
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             />
@@ -138,6 +173,7 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
             <input
               type="text"
               name="makkah_hotel"
+              defaultValue={editingPkg?.makkahHotel || ''}
               placeholder="e.g. Swissotel Makkah"
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             />
@@ -148,6 +184,7 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
             <input
               type="text"
               name="madinah_hotel"
+              defaultValue={editingPkg?.madinahHotel || ''}
               placeholder="e.g. Dar Al Taqwa"
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             />
@@ -158,6 +195,7 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
             <input
               type="text"
               name="room_type"
+              defaultValue={editingPkg?.roomType || ''}
               placeholder="Quad / Triple / Double sharing"
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             />
@@ -168,6 +206,7 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
             <textarea
               name="inclusions"
               rows={2}
+              defaultValue={editingPkg?.inclusions || ''}
               placeholder="Visa, Flights, Hotel, Ziyarat, Transport..."
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500 resize-none"
             ></textarea>
@@ -178,6 +217,7 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
             <textarea
               name="exclusions"
               rows={2}
+              defaultValue={editingPkg?.exclusions || ''}
               placeholder="Food, personal expenses..."
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500 resize-none"
             ></textarea>
@@ -188,6 +228,7 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
             <textarea
               name="public_description"
               rows={2}
+              defaultValue={editingPkg?.publicDescription || ''}
               placeholder="Short catchy package summary for landing page visitors..."
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500 resize-none"
             ></textarea>
@@ -195,11 +236,11 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
 
           <div className="sm:col-span-2 flex items-center gap-6 pt-2">
             <label className="flex items-center gap-2 text-xs font-medium text-slate-300 cursor-pointer">
-              <input type="checkbox" name="is_public" className="w-4 h-4 rounded border-slate-800 accent-amber-500" />
+              <input type="checkbox" name="is_public" defaultChecked={editingPkg ? editingPkg.isPublic : false} className="w-4 h-4 rounded border-slate-800 accent-amber-500" />
               <span>Publish on public website</span>
             </label>
             <label className="flex items-center gap-2 text-xs font-medium text-slate-300 cursor-pointer">
-              <input type="checkbox" name="is_active" defaultChecked className="w-4 h-4 rounded border-slate-800 accent-amber-500" />
+              <input type="checkbox" name="is_active" defaultChecked={editingPkg ? editingPkg.isActive : true} className="w-4 h-4 rounded border-slate-800 accent-amber-500" />
               <span>Package Active</span>
             </label>
           </div>
@@ -210,7 +251,7 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
               disabled={loading}
               className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/20 disabled:opacity-50"
             >
-              {loading ? 'Saving...' : 'Save Package'}
+              {loading ? 'Saving...' : editingPkg ? 'Update Package' : 'Save Package'}
             </button>
           </div>
         </form>
@@ -240,12 +281,13 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
                 <th className="p-4 font-semibold">Price</th>
                 <th className="p-4 font-semibold">Public</th>
                 <th className="p-4 font-semibold">Status</th>
+                <th className="p-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
               {packages.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-slate-500 italic">
+                  <td colSpan={7} className="p-6 text-center text-slate-500 italic">
                     No packages created yet.
                   </td>
                 </tr>
@@ -269,6 +311,23 @@ export default function PackagesClient({ initialPackages, currency }: { initialP
                       ) : (
                         <span className="text-slate-500">Disabled</span>
                       )}
+                    </td>
+                    <td className="p-4 text-right space-x-3">
+                      <button
+                        onClick={() => {
+                          setEditingPkg(p);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="text-amber-400 hover:underline font-semibold inline-flex items-center gap-1"
+                      >
+                        <Edit className="w-3 h-3" /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(p.id, p.name)}
+                        className="text-rose-400 hover:underline font-semibold inline-flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3 h-3" /> Delete
+                      </button>
                     </td>
                   </tr>
                 ))

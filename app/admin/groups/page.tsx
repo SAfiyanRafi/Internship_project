@@ -4,9 +4,11 @@ import GroupsClient from '@/components/GroupsClient';
 export const revalidate = 0;
 
 export default async function GroupsPage() {
+  const branches = await prisma.branch.findMany({ where: { isActive: true } });
+
   const customers = await prisma.customer.findMany({
     orderBy: { id: 'desc' },
-    select: { id: true, fullName: true, passportNo: true },
+    select: { id: true, fullName: true, passportNo: true, phone: true },
   });
 
   const groups = await prisma.travelGroup.findMany({
@@ -25,7 +27,7 @@ export default async function GroupsPage() {
         <p className="text-slate-400 text-sm mt-1">Manage pilgrim groups, assign group leaders, and link family members for rooming and group bookings.</p>
       </div>
 
-      <GroupsClient initialGroups={groups} customers={customers} />
+      <GroupsClient initialGroups={groups} customers={customers} branches={branches} />
     </div>
   );
 }

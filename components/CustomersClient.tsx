@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, Download, UserPlus, FileText, Edit, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Search, Download, UserPlus, FileText, Edit, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface CustomersClientProps {
   initialCustomers: any[];
@@ -18,6 +18,13 @@ export default function CustomersClient({ initialCustomers, branches, userBranch
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const refreshList = async () => {
+    const updatedRes = await fetch('/api/customers');
+    if (updatedRes.ok) {
+      setCustomers(await updatedRes.json());
+    }
+  };
 
   const filtered = customers.filter((c) => {
     const q = search.toLowerCase();
@@ -45,19 +52,31 @@ export default function CustomersClient({ initialCustomers, branches, userBranch
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save customer');
 
-      setMsg({ type: 'success', text: 'Customer saved successfully!' });
+      setMsg({ type: 'success', text: editingCustomer ? 'Customer updated!' : 'Customer saved!' });
       setEditingCustomer(null);
+      e.currentTarget.reset();
+      await refreshList();
       router.refresh();
-      
-      // Refresh local list
-      const updatedRes = await fetch('/api/customers');
-      if (updatedRes.ok) {
-        setCustomers(await updatedRes.json());
-      }
     } catch (err: any) {
       setMsg({ type: 'error', text: err.message || 'Error saving customer' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: number, name: string) => {
+    if (!confirm(`Are you sure you want to delete customer "${name}"? This action cannot be undone.`)) return;
+
+    try {
+      const res = await fetch(`/api/customers?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete customer');
+
+      setMsg({ type: 'success', text: `Customer "${name}" deleted successfully.` });
+      await refreshList();
+      router.refresh();
+    } catch (err: any) {
+      setMsg({ type: 'error', text: err.message || 'Failed to delete customer' });
     }
   };
 
@@ -339,9 +358,15 @@ export default function CustomersClient({ initialCustomers, branches, userBranch
                           setEditingCustomer(c);
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
-                        className="text-amber-400 hover:underline font-semibold"
+                        className="text-amber-400 hover:underline font-semibold inline-flex items-center gap-1"
                       >
-                        Edit
+                        <Edit className="w-3 h-3" /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(c.id, c.fullName)}
+                        className="text-rose-400 hover:underline font-semibold inline-flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3 h-3" /> Delete
                       </button>
                       <Link
                         href={`/admin/customers/${c.id}`}

@@ -111,3 +111,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message || 'Failed to save customer' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = Number(searchParams.get('id'));
+
+    if (!id) return NextResponse.json({ error: 'Customer ID is required' }, { status: 400 });
+
+    await prisma.customer.delete({ where: { id } });
+
+    await prisma.activityLog.create({
+      data: { userId: session.id, action: 'Delete Customer', entityType: 'customer', entityId: id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to delete customer' }, { status: 500 });
+  }
+}

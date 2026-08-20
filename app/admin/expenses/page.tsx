@@ -33,11 +33,11 @@ export default async function ExpensesPage() {
 
       <ExpensesClient
         initialExpenses={expenses}
-        branches={branches}
-        income={income}
-        totalExpenses={exp}
-        cashDifference={income - exp}
+        initialIncome={income}
+        initialTotalExpenses={exp}
+        initialCashDiff={income - exp}
         currency={currency}
+        branches={branches}
       />
     </div>
   );

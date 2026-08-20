@@ -50,3 +50,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message || 'Failed to save package' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  const session = await getSession();
+  if (!session || !['Super Admin', 'Manager'].includes(session.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = Number(searchParams.get('id'));
+
+    if (!id) return NextResponse.json({ error: 'Package ID is required' }, { status: 400 });
+
+    await prisma.package.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to delete package' }, { status: 500 });
+  }
+}

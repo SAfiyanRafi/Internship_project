@@ -2,13 +2,25 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { UsersRound, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Users, Edit, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 
-export default function GroupsClient({ initialGroups, customers }: { initialGroups: any[]; customers: any[] }) {
+interface GroupsClientProps {
+  initialGroups: any[];
+  customers: any[];
+  branches: any[];
+}
+
+export default function GroupsClient({ initialGroups, customers, branches }: GroupsClientProps) {
   const router = useRouter();
   const [groups, setGroups] = useState(initialGroups);
+  const [editingGroup, setEditingGroup] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const refreshList = async () => {
+    const res = await fetch('/api/groups');
+    if (res.ok) setGroups(await res.json());
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -16,32 +28,56 @@ export default function GroupsClient({ initialGroups, customers }: { initialGrou
     setMsg(null);
 
     const form = e.currentTarget;
-    const groupName = (form.elements.namedItem('group_name') as HTMLInputElement).value;
-    const leaderCustomerId = (form.elements.namedItem('leader_id') as HTMLSelectElement).value
-      ? Number((form.elements.namedItem('leader_id') as HTMLSelectElement).value)
-      : null;
-    const notes = (form.elements.namedItem('notes') as HTMLTextAreaElement).value || null;
+    const selectedMembers = Array.from(
+      (form.elements.namedItem('member_ids') as HTMLSelectElement).selectedOptions
+    ).map((opt) => Number(opt.value));
+
+    const body = {
+      id: editingGroup ? editingGroup.id : undefined,
+      branchId: Number((form.elements.namedItem('branch_id') as HTMLSelectElement).value),
+      groupName: (form.elements.namedItem('group_name') as HTMLInputElement).value,
+      leaderCustomerId: (form.elements.namedItem('leader_id') as HTMLSelectElement).value
+        ? Number((form.elements.namedItem('leader_id') as HTMLSelectElement).value)
+        : null,
+      notes: (form.elements.namedItem('notes') as HTMLTextAreaElement).value || null,
+      memberCustomerIds: selectedMembers,
+    };
 
     try {
       const res = await fetch('/api/groups', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ groupName, leaderCustomerId, notes }),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create travel group');
+      if (!res.ok) throw new Error(data.error || 'Failed to save group');
 
-      setMsg({ type: 'success', text: 'Travel group created successfully!' });
+      setMsg({ type: 'success', text: editingGroup ? 'Travel group updated!' : 'Travel group created!' });
+      setEditingGroup(null);
       form.reset();
+      await refreshList();
       router.refresh();
-
-      const updatedRes = await fetch('/api/groups');
-      if (updatedRes.ok) setGroups(await updatedRes.json());
     } catch (err: any) {
-      setMsg({ type: 'error', text: err.message || 'Error creating group' });
+      setMsg({ type: 'error', text: err.message || 'Error saving group' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: number, name: string) => {
+    if (!confirm(`Are you sure you want to delete travel group "${name}"?`)) return;
+
+    try {
+      const res = await fetch(`/api/groups?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete travel group');
+
+      setMsg({ type: 'success', text: `Travel group "${name}" deleted.` });
+      await refreshList();
+      router.refresh();
+    } catch (err: any) {
+      setMsg({ type: 'error', text: err.message || 'Error deleting travel group' });
     }
   };
 
@@ -60,21 +96,44 @@ export default function GroupsClient({ initialGroups, customers }: { initialGrou
         </div>
       )}
 
-      {/* Group Entry Panel */}
+      {/* Group Form */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-800">
-          <UsersRound className="w-5 h-5 text-amber-400" />
-          <h2 className="text-lg font-bold text-white">Create Family / Travel Group</h2>
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <Users className="w-5 h-5 text-amber-400" />
+            <h2 className="text-lg font-bold text-white">
+              {editingGroup ? `Edit Travel Group (#${editingGroup.id})` : 'Create Family / Travel Group'}
+            </h2>
+          </div>
+          {editingGroup && (
+            <button onClick={() => setEditingGroup(null)} className="text-xs text-slate-400 hover:text-white underline">
+              Cancel Edit
+            </button>
+          )}
         </div>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Branch</label>
+            <select
+              name="branch_id"
+              defaultValue={editingGroup?.branchId || branches[0]?.id}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
+            >
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Group Name *</label>
             <input
               type="text"
               name="group_name"
               required
-              placeholder="e.g. Khan Family Umrah 2026"
+              defaultValue={editingGroup?.groupName || ''}
+              placeholder="e.g. Hassan Family Group"
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             />
           </div>
@@ -83,32 +142,46 @@ export default function GroupsClient({ initialGroups, customers }: { initialGrou
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Group Leader</label>
             <select
               name="leader_id"
+              defaultValue={editingGroup?.leaderCustomerId || ''}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
             >
-              <option value="">-- Choose Group Leader --</option>
+              <option value="">-- Choose Leader --</option>
               {customers.map((c) => (
-                <option key={c.id} value={c.id}>{c.fullName} ({c.passportNo || 'No Passport'})</option>
+                <option key={c.id} value={c.id}>{c.fullName} ({c.phone || `ID #${c.id}`})</option>
               ))}
             </select>
           </div>
 
-          <div className="sm:col-span-2 lg:col-span-3">
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Group Notes</label>
+          <div className="sm:col-span-2 lg:col-span-4">
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Select Family Members (Hold Ctrl/Cmd to select multiple)</label>
+            <select
+              name="member_ids"
+              multiple
+              className="w-full h-28 px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
+            >
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>{c.fullName} — Passport: {c.passportNo || 'N/A'}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="sm:col-span-2 lg:col-span-4">
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Notes</label>
             <textarea
               name="notes"
               rows={2}
-              placeholder="Rooming preferences, family member relationship details..."
+              defaultValue={editingGroup?.notes || ''}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500 resize-none"
             ></textarea>
           </div>
 
-          <div className="sm:col-span-2 lg:col-span-3 flex items-center justify-end pt-2">
+          <div className="sm:col-span-2 lg:col-span-4 flex items-center justify-end pt-2">
             <button
               type="submit"
               disabled={loading}
               className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/20 disabled:opacity-50"
             >
-              {loading ? 'Creating...' : 'Create Travel Group'}
+              {loading ? 'Saving...' : editingGroup ? 'Update Group' : 'Save Travel Group'}
             </button>
           </div>
         </form>
@@ -117,7 +190,7 @@ export default function GroupsClient({ initialGroups, customers }: { initialGrou
       {/* Groups Directory Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
         <div className="p-6 border-b border-slate-800">
-          <h2 className="text-lg font-bold text-white">Travel Groups List</h2>
+          <h2 className="text-lg font-bold text-white">Travel & Family Groups</h2>
         </div>
 
         <div className="overflow-x-auto">
@@ -127,25 +200,41 @@ export default function GroupsClient({ initialGroups, customers }: { initialGrou
                 <th className="p-4 font-semibold">Group ID</th>
                 <th className="p-4 font-semibold">Group Name</th>
                 <th className="p-4 font-semibold">Group Leader</th>
-                <th className="p-4 font-semibold">Members Count</th>
-                <th className="p-4 font-semibold">Notes</th>
+                <th className="p-4 font-semibold">Total Members</th>
+                <th className="p-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
               {groups.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-6 text-center text-slate-500 italic">
-                    No travel groups created yet.
+                    No travel groups registered yet.
                   </td>
                 </tr>
               ) : (
                 groups.map((g) => (
                   <tr key={g.id} className="hover:bg-slate-800/50 transition-colors">
-                    <td className="p-4 font-bold text-amber-400">GRP-#{g.id}</td>
-                    <td className="p-4 font-medium text-white">{g.groupName}</td>
-                    <td className="p-4 text-slate-300">{g.leader?.fullName || 'Not assigned'}</td>
-                    <td className="p-4 font-bold text-emerald-400">{g.members ? g.members.length : 0} Members</td>
-                    <td className="p-4 text-slate-400">{g.notes || '-'}</td>
+                    <td className="p-4 font-bold text-amber-400">GRP-{g.id}</td>
+                    <td className="p-4 font-bold text-white">{g.groupName}</td>
+                    <td className="p-4 text-slate-300">{g.leader?.fullName || '-'}</td>
+                    <td className="p-4 font-bold text-emerald-400">{g.members ? g.members.length : 0} Pilgrims</td>
+                    <td className="p-4 text-right space-x-3">
+                      <button
+                        onClick={() => {
+                          setEditingGroup(g);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="text-amber-400 hover:underline font-semibold inline-flex items-center gap-1"
+                      >
+                        <Edit className="w-3 h-3" /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(g.id, g.groupName)}
+                        className="text-rose-400 hover:underline font-semibold inline-flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3 h-3" /> Delete
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}

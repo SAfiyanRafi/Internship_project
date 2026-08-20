@@ -27,6 +27,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
+    const id = body.id ? Number(body.id) : null;
     const bookingId = Number(body.bookingId);
     const amount = Number(body.amount);
 
@@ -42,23 +43,52 @@ export async function POST(request: Request) {
       referenceNo: body.referenceNo ? String(body.referenceNo) : null,
       receivedBy: String(body.receivedBy || session.name),
       notes: body.notes ? String(body.notes) : null,
-      createdById: session.id,
     };
 
-    const payment = await prisma.payment.create({ data });
+    if (id) {
+      await prisma.payment.update({ where: { id }, data });
+      return NextResponse.json({ success: true, paymentId: id });
+    } else {
+      const payment = await prisma.payment.create({
+        data: {
+          ...data,
+          createdById: session.id,
+        },
+      });
 
-    await prisma.activityLog.create({
-      data: {
-        userId: session.id,
-        action: 'Create Payment',
-        entityType: 'payment',
-        entityId: payment.id,
-        details: `Recorded payment of ${amount} for booking #${bookingId}`,
-      },
-    });
+      await prisma.activityLog.create({
+        data: {
+          userId: session.id,
+          action: 'Create Payment',
+          entityType: 'payment',
+          entityId: payment.id,
+          details: `Recorded payment of ${amount} for booking #${bookingId}`,
+        },
+      });
 
-    return NextResponse.json({ success: true, paymentId: payment.id });
+      return NextResponse.json({ success: true, paymentId: payment.id });
+    }
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to record payment' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  const session = await getSession();
+  if (!session || !['Super Admin', 'Manager', 'Accountant'].includes(session.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = Number(searchParams.get('id'));
+
+    if (!id) return NextResponse.json({ error: 'Payment ID is required' }, { status: 400 });
+
+    await prisma.payment.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to delete payment' }, { status: 500 });
   }
 }

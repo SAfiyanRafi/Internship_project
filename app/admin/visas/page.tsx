@@ -5,6 +5,10 @@ export const revalidate = 0;
 
 export default async function VisasPage() {
   const customers = await prisma.customer.findMany({ orderBy: { id: 'desc' }, select: { id: true, fullName: true, passportNo: true } });
+  const bookings = await prisma.booking.findMany({
+    include: { customer: true },
+    orderBy: { id: 'desc' },
+  });
   const visas = await prisma.visaRecord.findMany({
     include: { customer: true, booking: true },
     orderBy: { id: 'desc' },
@@ -17,7 +21,7 @@ export default async function VisasPage() {
         <p className="text-slate-400 text-sm mt-1">Track pilgrim visa applications from document collection to submission and decision.</p>
       </div>
 
-      <VisasClient initialVisas={visas} customers={customers} />
+      <VisasClient initialVisas={visas} customers={customers} bookings={bookings} />
     </div>
   );
 }

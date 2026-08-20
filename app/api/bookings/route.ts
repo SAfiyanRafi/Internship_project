@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-
+    const id = body.id ? Number(body.id) : null;
     const branchId = body.branchId ? Number(body.branchId) : session.branchId;
     const customerId = Number(body.customerId);
 
@@ -50,23 +50,59 @@ export async function POST(request: Request) {
       pnr: body.pnr ? String(body.pnr) : null,
       flightNo: body.flightNo ? String(body.flightNo) : null,
       notes: body.notes ? String(body.notes) : null,
-      createdById: session.id,
     };
 
-    const newBooking = await prisma.booking.create({ data });
-
-    await prisma.activityLog.create({
-      data: {
-        userId: session.id,
-        action: 'Create Booking',
-        entityType: 'booking',
-        entityId: newBooking.id,
-        details: `Booking created for customer ID #${customerId}`,
-      },
-    });
-
-    return NextResponse.json({ success: true, bookingId: newBooking.id });
+    if (id) {
+      await prisma.booking.update({
+        where: { id },
+        data,
+      });
+      await prisma.activityLog.create({
+        data: {
+          userId: session.id,
+          action: 'Update Booking',
+          entityType: 'booking',
+          entityId: id,
+        },
+      });
+      return NextResponse.json({ success: true, bookingId: id });
+    } else {
+      const newBooking = await prisma.booking.create({
+        data: {
+          ...data,
+          createdById: session.id,
+        },
+      });
+      await prisma.activityLog.create({
+        data: {
+          userId: session.id,
+          action: 'Create Booking',
+          entityType: 'booking',
+          entityId: newBooking.id,
+          details: `Booking created for customer ID #${customerId}`,
+        },
+      });
+      return NextResponse.json({ success: true, bookingId: newBooking.id });
+    }
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to create booking' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to save booking' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = Number(searchParams.get('id'));
+
+    if (!id) return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 });
+
+    await prisma.booking.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to delete booking' }, { status: 500 });
   }
 }

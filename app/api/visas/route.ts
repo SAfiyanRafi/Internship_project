@@ -20,24 +20,47 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
+    const id = body.id ? Number(body.id) : null;
     const customerId = Number(body.customerId);
 
     if (!customerId) return NextResponse.json({ error: 'Customer is required' }, { status: 400 });
 
-    const visa = await prisma.visaRecord.create({
-      data: {
-        customerId,
-        bookingId: body.bookingId ? Number(body.bookingId) : null,
-        status: String(body.status || 'Documents Pending'),
-        applicationNo: body.applicationNo ? String(body.applicationNo) : null,
-        submittedDate: body.submittedDate ? String(body.submittedDate) : null,
-        decisionDate: body.decisionDate ? String(body.decisionDate) : null,
-        notes: body.notes ? String(body.notes) : null,
-      },
-    });
+    const data = {
+      customerId,
+      bookingId: body.bookingId ? Number(body.bookingId) : null,
+      status: String(body.status || 'Documents Pending'),
+      applicationNo: body.applicationNo ? String(body.applicationNo) : null,
+      submittedDate: body.submittedDate ? String(body.submittedDate) : null,
+      decisionDate: body.decisionDate ? String(body.decisionDate) : null,
+      notes: body.notes ? String(body.notes) : null,
+    };
 
-    return NextResponse.json({ success: true, visaId: visa.id });
+    if (id) {
+      await prisma.visaRecord.update({ where: { id }, data });
+      return NextResponse.json({ success: true, visaId: id });
+    } else {
+      const visa = await prisma.visaRecord.create({ data });
+      return NextResponse.json({ success: true, visaId: visa.id });
+    }
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to save visa record' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = Number(searchParams.get('id'));
+
+    if (!id) return NextResponse.json({ error: 'Visa Record ID is required' }, { status: 400 });
+
+    await prisma.visaRecord.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to delete visa record' }, { status: 500 });
   }
 }
