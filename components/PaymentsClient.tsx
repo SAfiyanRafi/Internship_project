@@ -229,16 +229,16 @@ export default function PaymentsClient({ initialPayments, bookings, currency }: 
           </a>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full">
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="bg-slate-950/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
               <tr>
-                <th className="p-4 font-semibold">Receipt No.</th>
-                <th className="p-4 font-semibold">Customer</th>
-                <th className="p-4 font-semibold">Date</th>
-                <th className="p-4 font-semibold">Method</th>
-                <th className="p-4 font-semibold">Amount</th>
-                <th className="p-4 font-semibold text-right">Actions</th>
+                <th className="px-3 py-3 font-semibold">Actions</th>
+                <th className="px-3 py-3 font-semibold">Receipt No.</th>
+                <th className="px-3 py-3 font-semibold">Customer</th>
+                <th className="px-3 py-3 font-semibold">Date</th>
+                <th className="px-3 py-3 font-semibold">Method</th>
+                <th className="px-3 py-3 font-semibold">Amount</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
@@ -251,34 +251,36 @@ export default function PaymentsClient({ initialPayments, bookings, currency }: 
               ) : (
                 payments.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-800/50 transition-colors">
-                    <td className="p-4 font-bold text-amber-400">{receiptNo(p.id)}</td>
-                    <td className="p-4 font-medium text-white">{p.booking?.customer?.fullName || '-'}</td>
-                    <td className="p-4 text-slate-300 font-mono">{formatDate(p.paymentDate)}</td>
-                    <td className="p-4 text-slate-300">{p.method}</td>
-                    <td className="p-4 font-bold text-emerald-400">{formatMoney(p.amount, currency)}</td>
-                    <td className="p-4 text-right space-x-3">
-                      <button
-                        onClick={() => {
-                          setEditingPayment(p);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        className="text-amber-400 hover:underline font-semibold inline-flex items-center gap-1"
-                      >
-                        <Edit className="w-3 h-3" /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(p.id)}
-                        className="text-rose-400 hover:underline font-semibold inline-flex items-center gap-1"
-                      >
-                        <Trash2 className="w-3 h-3" /> Delete
-                      </button>
-                      <Link
-                        href={`/receipt/${p.id}`}
-                        className="inline-flex items-center gap-1 text-blue-400 hover:underline font-semibold"
-                      >
-                        <Printer className="w-3.5 h-3.5" /> Print
-                      </Link>
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => {
+                            setEditingPayment(p);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="px-2.5 py-1 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold transition-all inline-flex items-center gap-1"
+                        >
+                          <Edit className="w-3 h-3" /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(p.id)}
+                          className="px-2.5 py-1 rounded-md bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-[11px] font-bold transition-all inline-flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" /> Del
+                        </button>
+                        <Link
+                          href={`/receipt/${p.id}`}
+                          className="px-2.5 py-1 rounded-md bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/40 text-[11px] font-bold transition-all inline-flex items-center gap-1"
+                        >
+                          <Printer className="w-3 h-3" /> Print
+                        </Link>
+                      </div>
                     </td>
+                    <td className="px-3 py-3 font-bold text-amber-400 whitespace-nowrap">{receiptNo(p.id)}</td>
+                    <td className="px-3 py-3 font-medium text-white whitespace-nowrap">{p.booking?.customer?.fullName || '-'}</td>
+                    <td className="px-3 py-3 text-slate-300 font-mono whitespace-nowrap">{formatDate(p.paymentDate)}</td>
+                    <td className="px-3 py-3 text-slate-300 whitespace-nowrap">{p.method}</td>
+                    <td className="px-3 py-3 font-bold text-emerald-400 whitespace-nowrap">{formatMoney(p.amount, currency)}</td>
                   </tr>
                 ))
               )}

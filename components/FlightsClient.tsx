@@ -207,16 +207,16 @@ export default function FlightsClient({ initialFlights }: { initialFlights: any[
           <h2 className="text-lg font-bold text-white">Flight Schedules Directory</h2>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full">
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="bg-slate-950/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
               <tr>
-                <th className="p-4 font-semibold">Airline</th>
-                <th className="p-4 font-semibold">Flight No</th>
-                <th className="p-4 font-semibold">Route</th>
-                <th className="p-4 font-semibold">Departure</th>
-                <th className="p-4 font-semibold">Public Notice</th>
-                <th className="p-4 font-semibold text-right">Actions</th>
+                <th className="px-3 py-3 font-semibold">Actions</th>
+                <th className="px-3 py-3 font-semibold">Airline</th>
+                <th className="px-3 py-3 font-semibold">Flight No</th>
+                <th className="px-3 py-3 font-semibold">Route</th>
+                <th className="px-3 py-3 font-semibold">Departure</th>
+                <th className="px-3 py-3 font-semibold">Public Notice</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
@@ -229,33 +229,35 @@ export default function FlightsClient({ initialFlights }: { initialFlights: any[
               ) : (
                 flights.map((f) => (
                   <tr key={f.id} className="hover:bg-slate-800/50 transition-colors">
-                    <td className="p-4 font-medium text-white">{f.airline}</td>
-                    <td className="p-4 text-amber-400 font-mono font-semibold">{f.flightNo || '-'}</td>
-                    <td className="p-4 text-slate-300 font-semibold">{f.origin} → {f.destination}</td>
-                    <td className="p-4 text-slate-300 font-mono">{f.departureAt || 'TBA'}</td>
-                    <td className="p-4">
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => {
+                            setEditingFlight(f);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="px-2.5 py-1 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold transition-all inline-flex items-center gap-1"
+                        >
+                          <Edit className="w-3 h-3" /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(f.id, f.flightNo || f.airline)}
+                          className="px-2.5 py-1 rounded-md bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-[11px] font-bold transition-all inline-flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" /> Del
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 font-medium text-white whitespace-nowrap">{f.airline}</td>
+                    <td className="px-3 py-3 text-amber-400 font-mono font-semibold whitespace-nowrap">{f.flightNo || '-'}</td>
+                    <td className="px-3 py-3 text-slate-300 font-semibold whitespace-nowrap">{f.origin} → {f.destination}</td>
+                    <td className="px-3 py-3 text-slate-300 font-mono whitespace-nowrap">{f.departureAt || 'TBA'}</td>
+                    <td className="px-3 py-3 whitespace-nowrap">
                       {f.publicNotice ? (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Published</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Published</span>
                       ) : (
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">Internal</span>
                       )}
-                    </td>
-                    <td className="p-4 text-right space-x-3">
-                      <button
-                        onClick={() => {
-                          setEditingFlight(f);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        className="text-amber-400 hover:underline font-semibold inline-flex items-center gap-1"
-                      >
-                        <Edit className="w-3 h-3" /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(f.id, f.flightNo || f.airline)}
-                        className="text-rose-400 hover:underline font-semibold inline-flex items-center gap-1"
-                      >
-                        <Trash2 className="w-3 h-3" /> Delete
-                      </button>
                     </td>
                   </tr>
                 ))

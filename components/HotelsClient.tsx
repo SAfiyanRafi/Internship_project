@@ -184,16 +184,16 @@ export default function HotelsClient({ initialHotels }: { initialHotels: any[] }
           <span className="text-xs text-slate-400">Total Hotels: {hotels.length}</span>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full">
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="bg-slate-950/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
               <tr>
-                <th className="p-4 font-semibold">City</th>
-                <th className="p-4 font-semibold">Hotel Name</th>
-                <th className="p-4 font-semibold">Distance</th>
-                <th className="p-4 font-semibold">Phone</th>
-                <th className="p-4 font-semibold">Public</th>
-                <th className="p-4 font-semibold text-center min-w-[140px]">Operations / Actions</th>
+                <th className="px-3 py-3 font-semibold">Actions</th>
+                <th className="px-3 py-3 font-semibold">City</th>
+                <th className="px-3 py-3 font-semibold">Hotel Name</th>
+                <th className="px-3 py-3 font-semibold">Distance</th>
+                <th className="px-3 py-3 font-semibold">Phone</th>
+                <th className="px-3 py-3 font-semibold">Public</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
@@ -206,35 +206,35 @@ export default function HotelsClient({ initialHotels }: { initialHotels: any[] }
               ) : (
                 hotels.map((h) => (
                   <tr key={h.id} className="hover:bg-slate-800/50 transition-colors">
-                    <td className="p-4 font-bold text-amber-400">{h.city}</td>
-                    <td className="p-4 font-medium text-white">{h.name}</td>
-                    <td className="p-4 text-slate-300">{h.distance || '-'}</td>
-                    <td className="p-4 text-slate-300 font-mono">{h.phone || '-'}</td>
-                    <td className="p-4">
-                      {h.isPublic ? (
-                        <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Yes</span>
-                      ) : (
-                        <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-slate-800 text-slate-400">No</span>
-                      )}
-                    </td>
-                    <td className="p-4 text-center">
-                      <div className="inline-flex items-center justify-center gap-2">
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => {
                             setEditingHotel(h);
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
-                          className="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold transition-all inline-flex items-center gap-1"
+                          className="px-2.5 py-1 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold transition-all inline-flex items-center gap-1"
                         >
                           <Edit className="w-3 h-3" /> Edit
                         </button>
                         <button
                           onClick={() => handleDelete(h.id, h.name)}
-                          className="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold transition-all inline-flex items-center gap-1"
+                          className="px-2.5 py-1 rounded-md bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-[11px] font-bold transition-all inline-flex items-center gap-1"
                         >
-                          <Trash2 className="w-3 h-3" /> Delete
+                          <Trash2 className="w-3 h-3" /> Del
                         </button>
                       </div>
+                    </td>
+                    <td className="px-3 py-3 font-bold text-amber-400 whitespace-nowrap">{h.city}</td>
+                    <td className="px-3 py-3 font-medium text-white whitespace-nowrap">{h.name}</td>
+                    <td className="px-3 py-3 text-slate-300 whitespace-nowrap">{h.distance || '-'}</td>
+                    <td className="px-3 py-3 text-slate-300 font-mono whitespace-nowrap">{h.phone || '-'}</td>
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      {h.isPublic ? (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Yes</span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">No</span>
+                      )}
                     </td>
                   </tr>
                 ))

@@ -307,19 +307,19 @@ export default function BookingsClient({
           </a>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full">
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="bg-slate-950/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
               <tr>
-                <th className="p-4 font-semibold">Booking ID</th>
-                <th className="p-4 font-semibold">Customer</th>
-                <th className="p-4 font-semibold">Package</th>
-                <th className="p-4 font-semibold">Departure</th>
-                <th className="p-4 font-semibold">Net Price</th>
-                <th className="p-4 font-semibold">Paid</th>
-                <th className="p-4 font-semibold">Balance</th>
-                <th className="p-4 font-semibold">Status</th>
-                <th className="p-4 font-semibold text-right">Actions</th>
+                <th className="px-3 py-3 font-semibold">Actions</th>
+                <th className="px-3 py-3 font-semibold">Booking ID</th>
+                <th className="px-3 py-3 font-semibold">Customer</th>
+                <th className="px-3 py-3 font-semibold">Package</th>
+                <th className="px-3 py-3 font-semibold">Departure</th>
+                <th className="px-3 py-3 font-semibold">Net Price</th>
+                <th className="px-3 py-3 font-semibold">Paid</th>
+                <th className="px-3 py-3 font-semibold">Balance</th>
+                <th className="px-3 py-3 font-semibold">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
@@ -337,34 +337,36 @@ export default function BookingsClient({
 
                   return (
                     <tr key={b.id} className="hover:bg-slate-800/50 transition-colors">
-                      <td className="p-4 font-bold text-amber-400">{bookingNo(b.id)}</td>
-                      <td className="p-4 font-medium text-white">{b.customer?.fullName || '-'}</td>
-                      <td className="p-4 text-slate-300">{b.package?.name || 'Custom'}</td>
-                      <td className="p-4 font-mono text-slate-300">{formatDate(b.departureDate)}</td>
-                      <td className="p-4 font-bold text-white">{formatMoney(net, currency)}</td>
-                      <td className="p-4 font-bold text-emerald-400">{formatMoney(paid, currency)}</td>
-                      <td className="p-4 font-bold text-rose-400">{formatMoney(balance, currency)}</td>
-                      <td className="p-4">
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => {
+                              setEditingBooking(b);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className="px-2.5 py-1 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold transition-all inline-flex items-center gap-1"
+                          >
+                            <Edit className="w-3 h-3" /> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(b.id)}
+                            className="px-2.5 py-1 rounded-md bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-[11px] font-bold transition-all inline-flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3 h-3" /> Del
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 font-bold text-amber-400 whitespace-nowrap">{bookingNo(b.id)}</td>
+                      <td className="px-3 py-3 font-medium text-white whitespace-nowrap">{b.customer?.fullName || '-'}</td>
+                      <td className="px-3 py-3 text-slate-300 whitespace-nowrap">{b.package?.name || 'Custom'}</td>
+                      <td className="px-3 py-3 font-mono text-slate-300 whitespace-nowrap">{formatDate(b.departureDate)}</td>
+                      <td className="px-3 py-3 font-bold text-white whitespace-nowrap">{formatMoney(net, currency)}</td>
+                      <td className="px-3 py-3 font-bold text-emerald-400 whitespace-nowrap">{formatMoney(paid, currency)}</td>
+                      <td className="px-3 py-3 font-bold text-rose-400 whitespace-nowrap">{formatMoney(balance, currency)}</td>
+                      <td className="px-3 py-3 whitespace-nowrap">
                         <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
                           {b.status}
                         </span>
-                      </td>
-                      <td className="p-4 text-right space-x-3">
-                        <button
-                          onClick={() => {
-                            setEditingBooking(b);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
-                          className="text-amber-400 hover:underline font-semibold inline-flex items-center gap-1"
-                        >
-                          <Edit className="w-3 h-3" /> Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(b.id)}
-                          className="text-rose-400 hover:underline font-semibold inline-flex items-center gap-1"
-                        >
-                          <Trash2 className="w-3 h-3" /> Delete
-                        </button>
                       </td>
                     </tr>
                   );
