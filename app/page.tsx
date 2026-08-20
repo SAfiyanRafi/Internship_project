@@ -17,31 +17,36 @@ import {
   CheckCircle2
 } from "lucide-react";
 
-export const revalidate = 0; // Dynamic rendering for fresh public data
-
 export default async function HomePage() {
-  // Fetch database content for public sections
-  const packages = await prisma.package.findMany({
-    where: { isPublic: true, isActive: true },
-    orderBy: { id: "desc" },
-    take: 9,
-  });
-
-  const hotels = await prisma.hotel.findMany({
-    where: { isPublic: true },
-    orderBy: { id: "desc" },
-    take: 8,
-  });
-
-  const flights = await prisma.flight.findMany({
-    where: { publicNotice: true },
-    orderBy: { departureAt: "asc" },
-    take: 8,
-  });
-
-  const settingsArr = await prisma.setting.findMany();
+  let packages: any[] = [];
+  let hotels: any[] = [];
+  let flights: any[] = [];
   const settings: Record<string, string> = {};
-  settingsArr.forEach((s) => (settings[s.key] = s.value));
+
+  try {
+    packages = await prisma.package.findMany({
+      where: { isPublic: true, isActive: true },
+      orderBy: { id: "desc" },
+      take: 9,
+    });
+
+    hotels = await prisma.hotel.findMany({
+      where: { isPublic: true },
+      orderBy: { id: "desc" },
+      take: 8,
+    });
+
+    flights = await prisma.flight.findMany({
+      where: { publicNotice: true },
+      orderBy: { departureAt: "asc" },
+      take: 8,
+    });
+
+    const settingsArr = await prisma.setting.findMany();
+    settingsArr.forEach((s) => (settings[s.key] = s.value));
+  } catch (error) {
+    console.error("Database error on home page:", error);
+  }
 
   const companyName = settings.company_name || "THABBA Travel & Tour Pvt Ltd";
   const tagline = settings.public_tagline || "Your journey, managed with care.";
