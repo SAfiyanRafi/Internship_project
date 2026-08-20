@@ -35,39 +35,48 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const id = body.id ? Number(body.id) : null;
-    const branchId = body.branchId ? Number(body.branchId) : session.branchId;
     const customerId = Number(body.customerId);
 
     if (!customerId) {
       return NextResponse.json({ error: 'Customer is required' }, { status: 400 });
     }
 
-    // Verify if customer exists
+    // 1. Verify customer existence
     const customerExists = await prisma.customer.findUnique({ where: { id: customerId } });
     if (!customerExists) {
       return NextResponse.json({ error: 'Selected customer does not exist' }, { status: 400 });
     }
 
-    // Safely validate Travel Group existence to prevent FK constraint errors
+    // 2. Verify branch existence
+    let branchId = body.branchId ? Number(body.branchId) : session.branchId;
+    if (branchId) {
+      const existingBranch = await prisma.branch.findUnique({ where: { id: branchId } });
+      if (!existingBranch) branchId = null;
+    }
+
+    // 3. Verify Travel Group existence
     let groupId = body.groupId ? Number(body.groupId) : null;
     if (groupId) {
       const existingGroup = await prisma.travelGroup.findUnique({ where: { id: groupId } });
-      if (!existingGroup) {
-        groupId = null;
-      }
+      if (!existingGroup) groupId = null;
     }
 
-    // Safely validate Package existence
+    // 4. Verify Package existence
     let packageId = body.packageId ? Number(body.packageId) : null;
     if (packageId) {
       const existingPkg = await prisma.package.findUnique({ where: { id: packageId } });
-      if (!existingPkg) {
-        packageId = null;
-      }
+      if (!existingPkg) packageId = null;
+    }
+
+    // 5. Verify User existence for createdById
+    let createdById: number | null = session.id ? Number(session.id) : null;
+    if (createdById) {
+      const existingUser = await prisma.user.findUnique({ where: { id: createdById } });
+      if (!existingUser) createdById = null;
     }
 
     const data = {
-      branchId: branchId || null,
+      branchId,
       customerId,
       groupId,
       packageId,
@@ -86,31 +95,38 @@ export async function POST(request: Request) {
         where: { id },
         data,
       });
-      await prisma.activityLog.create({
-        data: {
-          userId: session.id,
-          action: 'Update Booking',
-          entityType: 'booking',
-          entityId: id,
-        },
-      });
+
+      if (createdById) {
+        try {
+          await prisma.activityLog.create({
+            data: { userId: createdById, action: 'Update Booking', entityType: 'booking', entityId: id },
+          });
+        } catch (_) {}
+      }
+
       return NextResponse.json({ success: true, bookingId: id });
     } else {
       const newBooking = await prisma.booking.create({
         data: {
           ...data,
-          createdById: session.id,
+          createdById,
         },
       });
-      await prisma.activityLog.create({
-        data: {
-          userId: session.id,
-          action: 'Create Booking',
-          entityType: 'booking',
-          entityId: newBooking.id,
-          details: `Booking created for customer ID #${customerId}`,
-        },
-      });
+
+      if (createdById) {
+        try {
+          await prisma.activityLog.create({
+            data: {
+              userId: createdById,
+              action: 'Create Booking',
+              entityType: 'booking',
+              entityId: newBooking.id,
+              details: `Booking created for customer ID #${customerId}`,
+            },
+          });
+        } catch (_) {}
+      }
+
       return NextResponse.json({ success: true, bookingId: newBooking.id });
     }
   } catch (error: any) {
@@ -135,9 +151,17 @@ export async function DELETE(request: Request) {
 
     await prisma.booking.delete({ where: { id } });
 
-    await prisma.activityLog.create({
-      data: { userId: session.id, action: 'Delete Booking', entityType: 'booking', entityId: id },
-    });
+    let userId: number | null = session.id ? Number(session.id) : null;
+    if (userId) {
+      const userExists = await prisma.user.findUnique({ where: { id: userId } });
+      if (userExists) {
+        try {
+          await prisma.activityLog.create({
+            data: { userId, action: 'Delete Booking', entityType: 'booking', entityId: id },
+          });
+        } catch (_) {}
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

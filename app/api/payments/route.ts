@@ -39,6 +39,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Booking and valid positive amount are required' }, { status: 400 });
     }
 
+    const bookingExists = await prisma.booking.findUnique({ where: { id: bookingId } });
+    if (!bookingExists) {
+      return NextResponse.json({ error: 'Selected booking does not exist' }, { status: 400 });
+    }
+
+    let createdById: number | null = session.id ? Number(session.id) : null;
+    if (createdById) {
+      const userExists = await prisma.user.findUnique({ where: { id: createdById } });
+      if (!userExists) createdById = null;
+    }
+
     const data = {
       bookingId,
       amount,
@@ -51,27 +62,35 @@ export async function POST(request: Request) {
 
     if (id) {
       await prisma.payment.update({ where: { id }, data });
-      await prisma.activityLog.create({
-        data: { userId: session.id, action: 'Update Payment', entityType: 'payment', entityId: id },
-      });
+      if (createdById) {
+        try {
+          await prisma.activityLog.create({
+            data: { userId: createdById, action: 'Update Payment', entityType: 'payment', entityId: id },
+          });
+        } catch (_) {}
+      }
       return NextResponse.json({ success: true, paymentId: id });
     } else {
       const payment = await prisma.payment.create({
         data: {
           ...data,
-          createdById: session.id,
+          createdById,
         },
       });
 
-      await prisma.activityLog.create({
-        data: {
-          userId: session.id,
-          action: 'Create Payment',
-          entityType: 'payment',
-          entityId: payment.id,
-          details: `Recorded payment of ${amount} for booking #${bookingId}`,
-        },
-      });
+      if (createdById) {
+        try {
+          await prisma.activityLog.create({
+            data: {
+              userId: createdById,
+              action: 'Create Payment',
+              entityType: 'payment',
+              entityId: payment.id,
+              details: `Recorded payment of ${amount} for booking #${bookingId}`,
+            },
+          });
+        } catch (_) {}
+      }
 
       return NextResponse.json({ success: true, paymentId: payment.id });
     }
@@ -94,9 +113,17 @@ export async function DELETE(request: Request) {
 
     await prisma.payment.delete({ where: { id } });
 
-    await prisma.activityLog.create({
-      data: { userId: session.id, action: 'Delete Payment', entityType: 'payment', entityId: id },
-    });
+    let userId: number | null = session.id ? Number(session.id) : null;
+    if (userId) {
+      const userExists = await prisma.user.findUnique({ where: { id: userId } });
+      if (userExists) {
+        try {
+          await prisma.activityLog.create({
+            data: { userId, action: 'Delete Payment', entityType: 'payment', entityId: id },
+          });
+        } catch (_) {}
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
