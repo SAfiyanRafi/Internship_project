@@ -1,0 +1,267 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Branch {
+  id        Int       @id @default(autoincrement())
+  name      String
+  phone     String?
+  address   String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  users        User[]
+  customers    Customer[]
+  travelGroups TravelGroup[]
+  bookings     Booking[]
+  expenses     Expense[]
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  branchId     Int?
+  branch       Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         String    @default("Staff") // Super Admin, Manager, Accountant, Staff
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+
+  customersCreated  Customer[]         @relation("CustomerCreatedBy")
+  documentsUploaded CustomerDocument[] @relation("DocumentUploadedBy")
+  bookingsCreated   Booking[]          @relation("BookingCreatedBy")
+  paymentsCreated   Payment[]          @relation("PaymentCreatedBy")
+  expensesCreated   Expense[]          @relation("ExpenseCreatedBy")
+  activityLogs      ActivityLog[]
+}
+
+model Customer {
+  id               Int       @id @default(autoincrement())
+  branchId         Int?
+  branch           Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  fullName         String
+  fatherName       String?
+  phone            String?
+  email            String?
+  cnic             String?
+  passportNo       String?
+  passportExpiry   String?   // YYYY-MM-DD
+  dob              String?   // YYYY-MM-DD
+  gender           String?
+  nationality      String?   @default("Pakistani")
+  address          String?
+  emergencyContact String?
+  notes            String?
+  createdById      Int?
+  createdBy        User?     @relation("CustomerCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt        DateTime  @default(now())
+
+  documents        CustomerDocument[]
+  bookings         Booking[]
+  visas            VisaRecord[]
+  travelGroupsLed  TravelGroup[]
+  groupMemberships GroupMember[]
+}
+
+model CustomerDocument {
+  id           Int      @id @default(autoincrement())
+  customerId   Int
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  docType      String
+  fileName     String
+  uploadedById Int?
+  uploadedBy   User?    @relation("DocumentUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+}
+
+model TravelGroup {
+  id               Int      @id @default(autoincrement())
+  branchId         Int?
+  branch           Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  groupName        String
+  leaderCustomerId Int?
+  leader           Customer? @relation(fields: [leaderCustomerId], references: [id], onDelete: SetNull)
+  notes            String?
+  createdAt        DateTime @default(now())
+
+  members          GroupMember[]
+  bookings         Booking[]
+}
+
+model GroupMember {
+  groupId    Int
+  group      TravelGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  customerId Int
+  customer   Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, customerId])
+}
+
+model Package {
+  id                Int      @id @default(autoincrement())
+  name              String
+  packageType       String   @default("Umrah") // Umrah, Hajj, Other
+  days              Int      @default(14)
+  price             Float    @default(0)
+  airline           String?
+  makkahHotel       String?
+  madinahHotel      String?
+  roomType          String?
+  inclusions        String?
+  exclusions        String?
+  publicDescription String?
+  isPublic          Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+
+  bookings Booking[]
+}
+
+model Booking {
+  id            Int          @id @default(autoincrement())
+  branchId      Int?
+  branch        Branch?      @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  customerId    Int
+  customer      Customer     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  groupId       Int?
+  group         TravelGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  packageId     Int?
+  package       Package?     @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  departureDate String?      // YYYY-MM-DD
+  returnDate    String?      // YYYY-MM-DD
+  totalPrice    Float        @default(0)
+  discount      Float        @default(0)
+  status        String       @default("Booked")
+  pnr           String?
+  flightNo      String?
+  notes         String?
+  createdById   Int?
+  createdBy     User?        @relation("BookingCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+
+  payments         Payment[]
+  visas            VisaRecord[]
+  hotelAssignments HotelAssignment[]
+  bookingFlights   BookingFlight[]
+}
+
+model Payment {
+  id          Int      @id @default(autoincrement())
+  bookingId   Int
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  amount      Float
+  paymentDate String   // YYYY-MM-DD
+  method      String   @default("Cash")
+  referenceNo String?
+  receivedBy  String?
+  notes       String?
+  createdById Int?
+  createdBy   User?    @relation("PaymentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+}
+
+model VisaRecord {
+  id             Int       @id @default(autoincrement())
+  customerId     Int
+  customer       Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  bookingId      Int?
+  booking        Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  status         String    @default("Documents Pending")
+  applicationNo  String?
+  submittedDate  String?   // YYYY-MM-DD
+  decisionDate   String?   // YYYY-MM-DD
+  notes          String?
+  updatedAt      DateTime  @updatedAt
+}
+
+model Hotel {
+  id        Int     @id @default(autoincrement())
+  city      String
+  name      String
+  distance  String?
+  phone     String?
+  notes     String?
+  isPublic  Boolean @default(false)
+
+  assignments HotelAssignment[]
+}
+
+model HotelAssignment {
+  id        Int       @id @default(autoincrement())
+  bookingId Int
+  booking   Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  hotelId   Int
+  hotel     Hotel     @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  checkIn   String?   // YYYY-MM-DD
+  checkOut  String?   // YYYY-MM-DD
+  roomType  String?
+  roomNo    String?
+}
+
+model Flight {
+  id           Int      @id @default(autoincrement())
+  airline      String
+  flightNo     String?
+  origin       String?
+  destination  String?
+  departureAt  String?  // ISO/datetime string
+  arrivalAt    String?  // ISO/datetime string
+  baggage      String?
+  publicNotice Boolean  @default(false)
+
+  bookingFlights BookingFlight[]
+}
+
+model BookingFlight {
+  bookingId Int
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  flightId  Int
+  flight    Flight  @relation(fields: [flightId], references: [id], onDelete: Cascade)
+
+  @@id([bookingId, flightId])
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  branchId    Int?
+  branch      Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  expenseDate String   // YYYY-MM-DD
+  category    String
+  description String?
+  amount      Float
+  createdById Int?
+  createdBy   User?    @relation("ExpenseCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+}
+
+model Enquiry {
+  id        Int      @id @default(autoincrement())
+  fullName  String
+  phone     String
+  service   String?
+  message   String?
+  status    String   @default("New")
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+model ActivityLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String?
+  entityId   Int?
+  details    String?
+  createdAt  DateTime @default(now())
+}
