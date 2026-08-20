@@ -136,6 +136,24 @@ A full-stack Travel & Tour management system built for **THABBA Travel & Tour Pv
 
 ---
 
+## ☁️ Production Deployment
+
+### Option 1: InfinityFree Hosting (Static Export)
+1. Ensure `next.config.mjs` is set to `output: 'export'`.
+2. Run the production export command:
+   ```bash
+   npm run build
+   ```
+3. Next.js creates an `out/` folder containing static HTML, CSS, and JavaScript.
+4. Upload all files inside the `out/` folder directly to the `htdocs/` folder on **InfinityFree** via FTP / FileZilla.
+
+### Option 2: Vercel / Render / Railway (Dynamic Full-Stack Node.js)
+1. Connect your GitHub repository `SAfiyanRafi/Internship_project` to [Vercel](https://vercel.com).
+2. Set environment variables (`DATABASE_URL` and `JWT_SECRET`).
+3. Deploy instantly with 1-click automatic GitHub integration.
+
+---
+
 ## 📄 License & Credits
 
 Developed for **THABBA Travel & Tour Pvt Ltd**. All rights reserved.
