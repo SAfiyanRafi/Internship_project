@@ -4,7 +4,15 @@ import Link from 'next/link';
 import { ArrowLeft, User, FileText, BookOpen, ExternalLink } from 'lucide-react';
 import { notFound } from 'next/navigation';
 
-export const revalidate = 0;
+export async function generateStaticParams() {
+  try {
+    const customers = await prisma.customer.findMany({ select: { id: true } });
+    if (customers.length === 0) return [{ id: '1' }];
+    return customers.map((c) => ({ id: String(c.id) }));
+  } catch {
+    return [{ id: '1' }];
+  }
+}
 
 export default async function CustomerProfilePage({ params }: { params: { id: string } }) {
   const id = Number(params.id);

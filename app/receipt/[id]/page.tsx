@@ -5,7 +5,15 @@ import { Printer, ArrowLeft } from 'lucide-react';
 import PrintButton from '@/components/PrintButton';
 import { notFound } from 'next/navigation';
 
-export const revalidate = 0;
+export async function generateStaticParams() {
+  try {
+    const payments = await prisma.payment.findMany({ select: { id: true } });
+    if (payments.length === 0) return [{ id: '1' }];
+    return payments.map((p) => ({ id: String(p.id) }));
+  } catch {
+    return [{ id: '1' }];
+  }
+}
 
 export default async function ReceiptPage({ params }: { params: { id: string } }) {
   const id = Number(params.id);
