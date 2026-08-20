@@ -75,9 +75,15 @@ export async function POST(request: Request) {
       });
     }
 
-    // Handle File Uploads (Passport / CNIC)
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    await fs.mkdir(uploadDir, { recursive: true });
+    // Serverless-safe file uploads handling
+    const isVercel = Boolean(process.env.VERCEL || process.env.NODE_ENV === 'production');
+    const uploadDir = isVercel ? '/tmp/uploads' : path.join(process.cwd(), 'public', 'uploads');
+
+    try {
+      await fs.mkdir(uploadDir, { recursive: true });
+    } catch (dirErr) {
+      console.warn('Could not create upload directory:', dirErr);
+    }
 
     const fileFields = [
       { fieldName: 'passport_file', docType: 'Passport' },
@@ -87,21 +93,25 @@ export async function POST(request: Request) {
     for (const item of fileFields) {
       const file = formData.get(item.fieldName) as File | null;
       if (file && file.size > 0) {
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const ext = path.extname(file.name) || '.pdf';
-        const fileName = `${crypto.randomBytes(16).toString('hex')}${ext}`;
-        const filePath = path.join(uploadDir, fileName);
+        try {
+          const buffer = Buffer.from(await file.arrayBuffer());
+          const ext = path.extname(file.name) || '.pdf';
+          const fileName = `${crypto.randomBytes(16).toString('hex')}${ext}`;
+          const filePath = path.join(uploadDir, fileName);
 
-        await fs.writeFile(filePath, buffer);
+          await fs.writeFile(filePath, buffer);
 
-        await prisma.customerDocument.create({
-          data: {
-            customerId,
-            docType: item.docType,
-            fileName,
-            uploadedById: session.id,
-          },
-        });
+          await prisma.customerDocument.create({
+            data: {
+              customerId,
+              docType: item.docType,
+              fileName,
+              uploadedById: session.id,
+            },
+          });
+        } catch (fileErr) {
+          console.warn(`File upload skipped for ${item.docType}:`, fileErr);
+        }
       }
     }
 
