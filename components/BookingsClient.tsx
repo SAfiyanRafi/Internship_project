@@ -9,6 +9,7 @@ interface BookingsClientProps {
   initialBookings: any[];
   customers: any[];
   packages: any[];
+  groups?: any[];
   branches: any[];
   currency: string;
 }
@@ -17,6 +18,7 @@ export default function BookingsClient({
   initialBookings,
   customers,
   packages,
+  groups = [],
   branches,
   currency,
 }: BookingsClientProps) {
@@ -53,8 +55,8 @@ export default function BookingsClient({
       id: editingBooking ? editingBooking.id : undefined,
       branchId: Number((form.elements.namedItem('branch_id') as HTMLSelectElement).value),
       customerId: Number((form.elements.namedItem('customer_id') as HTMLSelectElement).value),
-      groupId: (form.elements.namedItem('group_id') as HTMLInputElement).value
-        ? Number((form.elements.namedItem('group_id') as HTMLInputElement).value)
+      groupId: (form.elements.namedItem('group_id') as HTMLSelectElement).value
+        ? Number((form.elements.namedItem('group_id') as HTMLSelectElement).value)
         : null,
       packageId: (form.elements.namedItem('package_id') as HTMLSelectElement).value
         ? Number((form.elements.namedItem('package_id') as HTMLSelectElement).value)
@@ -170,14 +172,19 @@ export default function BookingsClient({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Group ID (Optional)</label>
-            <input
-              type="number"
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Travel Group (Optional)</label>
+            <select
               name="group_id"
               defaultValue={editingBooking?.groupId || ''}
-              placeholder="e.g. 101"
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
-            />
+            >
+              <option value="">-- None (Individual) --</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.groupName} (GRP-{g.id})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="sm:col-span-2">

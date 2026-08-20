@@ -15,6 +15,7 @@ export async function GET() {
         customer: true,
         package: true,
         payments: true,
+        group: true,
         branch: true,
       },
       orderBy: { id: 'desc' },
@@ -41,11 +42,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Customer is required' }, { status: 400 });
     }
 
+    // Verify if customer exists
+    const customerExists = await prisma.customer.findUnique({ where: { id: customerId } });
+    if (!customerExists) {
+      return NextResponse.json({ error: 'Selected customer does not exist' }, { status: 400 });
+    }
+
+    // Safely validate Travel Group existence to prevent FK constraint errors
+    let groupId = body.groupId ? Number(body.groupId) : null;
+    if (groupId) {
+      const existingGroup = await prisma.travelGroup.findUnique({ where: { id: groupId } });
+      if (!existingGroup) {
+        groupId = null;
+      }
+    }
+
+    // Safely validate Package existence
+    let packageId = body.packageId ? Number(body.packageId) : null;
+    if (packageId) {
+      const existingPkg = await prisma.package.findUnique({ where: { id: packageId } });
+      if (!existingPkg) {
+        packageId = null;
+      }
+    }
+
     const data = {
       branchId: branchId || null,
       customerId,
-      groupId: body.groupId ? Number(body.groupId) : null,
-      packageId: body.packageId ? Number(body.packageId) : null,
+      groupId,
+      packageId,
       departureDate: body.departureDate ? String(body.departureDate) : null,
       returnDate: body.returnDate ? String(body.returnDate) : null,
       totalPrice: Number(body.totalPrice || 0),
@@ -103,7 +128,6 @@ export async function DELETE(request: Request) {
 
     if (!id) return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 });
 
-    // Safe relational cleanup before deleting booking
     await prisma.payment.deleteMany({ where: { bookingId: id } });
     await prisma.hotelAssignment.deleteMany({ where: { bookingId: id } });
     await prisma.bookingFlight.deleteMany({ where: { bookingId: id } });
