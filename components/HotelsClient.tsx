@@ -179,8 +179,9 @@ export default function HotelsClient({ initialHotels }: { initialHotels: any[] }
 
       {/* Hotel Directory Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div className="p-6 border-b border-slate-800">
-          <h2 className="text-lg font-bold text-white">Hotel Directory</h2>
+        <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-white">Hotels Directory</h2>
+          <span className="text-xs text-slate-400">Total Hotels: {hotels.length}</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -192,14 +193,14 @@ export default function HotelsClient({ initialHotels }: { initialHotels: any[] }
                 <th className="p-4 font-semibold">Distance</th>
                 <th className="p-4 font-semibold">Phone</th>
                 <th className="p-4 font-semibold">Public</th>
-                <th className="p-4 font-semibold text-right">Actions</th>
+                <th className="p-4 font-semibold text-center min-w-[140px]">Operations / Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
               {hotels.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-6 text-center text-slate-500 italic">
-                    No hotels registered yet.
+                    No hotels registered yet. Use the form above to add a hotel.
                   </td>
                 </tr>
               ) : (
@@ -211,27 +212,29 @@ export default function HotelsClient({ initialHotels }: { initialHotels: any[] }
                     <td className="p-4 text-slate-300 font-mono">{h.phone || '-'}</td>
                     <td className="p-4">
                       {h.isPublic ? (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Yes</span>
+                        <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Yes</span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">No</span>
+                        <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-slate-800 text-slate-400">No</span>
                       )}
                     </td>
-                    <td className="p-4 text-right space-x-3">
-                      <button
-                        onClick={() => {
-                          setEditingHotel(h);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        className="text-amber-400 hover:underline font-semibold inline-flex items-center gap-1"
-                      >
-                        <Edit className="w-3 h-3" /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(h.id, h.name)}
-                        className="text-rose-400 hover:underline font-semibold inline-flex items-center gap-1"
-                      >
-                        <Trash2 className="w-3 h-3" /> Delete
-                      </button>
+                    <td className="p-4 text-center">
+                      <div className="inline-flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingHotel(h);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold transition-all inline-flex items-center gap-1"
+                        >
+                          <Edit className="w-3 h-3" /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(h.id, h.name)}
+                          className="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold transition-all inline-flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" /> Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
