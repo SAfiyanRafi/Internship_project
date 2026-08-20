@@ -3,20 +3,24 @@ import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 
 export async function GET() {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const payments = await prisma.payment.findMany({
-    include: {
-      booking: {
-        include: { customer: true, package: true },
+    const payments = await prisma.payment.findMany({
+      include: {
+        booking: {
+          include: { customer: true, package: true },
+        },
       },
-    },
-    orderBy: { id: 'desc' },
-    take: 500,
-  });
+      orderBy: { id: 'desc' },
+      take: 500,
+    });
 
-  return NextResponse.json(payments);
+    return NextResponse.json(payments);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to fetch payments' }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -47,6 +51,9 @@ export async function POST(request: Request) {
 
     if (id) {
       await prisma.payment.update({ where: { id }, data });
+      await prisma.activityLog.create({
+        data: { userId: session.id, action: 'Update Payment', entityType: 'payment', entityId: id },
+      });
       return NextResponse.json({ success: true, paymentId: id });
     } else {
       const payment = await prisma.payment.create({
@@ -86,6 +93,10 @@ export async function DELETE(request: Request) {
     if (!id) return NextResponse.json({ error: 'Payment ID is required' }, { status: 400 });
 
     await prisma.payment.delete({ where: { id } });
+
+    await prisma.activityLog.create({
+      data: { userId: session.id, action: 'Delete Payment', entityType: 'payment', entityId: id },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

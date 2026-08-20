@@ -3,31 +3,35 @@ import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 
 export async function GET() {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const expenses = await prisma.expense.findMany({
-    include: { branch: true },
-    orderBy: [{ expenseDate: 'desc' }, { id: 'desc' }],
-  });
+    const expenses = await prisma.expense.findMany({
+      include: { branch: true },
+      orderBy: [{ expenseDate: 'desc' }, { id: 'desc' }],
+    });
 
-  const totalPayments = await prisma.payment.aggregate({
-    _sum: { amount: true },
-  });
+    const totalPayments = await prisma.payment.aggregate({
+      _sum: { amount: true },
+    });
 
-  const totalExpenses = await prisma.expense.aggregate({
-    _sum: { amount: true },
-  });
+    const totalExpenses = await prisma.expense.aggregate({
+      _sum: { amount: true },
+    });
 
-  const income = totalPayments._sum.amount || 0;
-  const exp = totalExpenses._sum.amount || 0;
+    const income = totalPayments._sum.amount || 0;
+    const exp = totalExpenses._sum.amount || 0;
 
-  return NextResponse.json({
-    expenses,
-    income,
-    totalExpenses: exp,
-    cashDifference: income - exp,
-  });
+    return NextResponse.json({
+      expenses,
+      income,
+      totalExpenses: exp,
+      cashDifference: income - exp,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to fetch expenses' }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -56,6 +60,9 @@ export async function POST(request: Request) {
 
     if (id) {
       await prisma.expense.update({ where: { id }, data });
+      await prisma.activityLog.create({
+        data: { userId: session.id, action: 'Update Expense', entityType: 'expense', entityId: id },
+      });
       return NextResponse.json({ success: true, expenseId: id });
     } else {
       const expense = await prisma.expense.create({
@@ -63,6 +70,9 @@ export async function POST(request: Request) {
           ...data,
           createdById: session.id,
         },
+      });
+      await prisma.activityLog.create({
+        data: { userId: session.id, action: 'Create Expense', entityType: 'expense', entityId: expense.id },
       });
       return NextResponse.json({ success: true, expenseId: expense.id });
     }
@@ -84,6 +94,10 @@ export async function DELETE(request: Request) {
     if (!id) return NextResponse.json({ error: 'Expense ID is required' }, { status: 400 });
 
     await prisma.expense.delete({ where: { id } });
+
+    await prisma.activityLog.create({
+      data: { userId: session.id, action: 'Delete Expense', entityType: 'expense', entityId: id },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

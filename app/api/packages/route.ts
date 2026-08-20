@@ -3,10 +3,14 @@ import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 
 export async function GET() {
-  const packages = await prisma.package.findMany({
-    orderBy: { id: 'desc' },
-  });
-  return NextResponse.json(packages);
+  try {
+    const packages = await prisma.package.findMany({
+      orderBy: { id: 'desc' },
+    });
+    return NextResponse.json(packages);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to fetch packages' }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -39,13 +43,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Package Name and Price are required' }, { status: 400 });
     }
 
+    let packageId: number;
+
     if (id) {
-      await prisma.package.update({ where: { id }, data });
+      const updated = await prisma.package.update({ where: { id }, data });
+      packageId = updated.id;
+      await prisma.activityLog.create({
+        data: { userId: session.id, action: 'Update Package', entityType: 'package', entityId: packageId },
+      });
     } else {
-      await prisma.package.create({ data });
+      const created = await prisma.package.create({ data });
+      packageId = created.id;
+      await prisma.activityLog.create({
+        data: { userId: session.id, action: 'Create Package', entityType: 'package', entityId: packageId },
+      });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, packageId });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to save package' }, { status: 500 });
   }
@@ -64,6 +78,10 @@ export async function DELETE(request: Request) {
     if (!id) return NextResponse.json({ error: 'Package ID is required' }, { status: 400 });
 
     await prisma.package.delete({ where: { id } });
+
+    await prisma.activityLog.create({
+      data: { userId: session.id, action: 'Delete Package', entityType: 'package', entityId: id },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

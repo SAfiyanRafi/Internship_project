@@ -3,24 +3,28 @@ import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 
 export async function GET() {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const whereCondition = session.role === 'Super Admin' ? {} : { branchId: session.branchId || undefined };
+    const whereCondition = session.role === 'Super Admin' ? {} : { branchId: session.branchId || undefined };
 
-  const bookings = await prisma.booking.findMany({
-    where: whereCondition,
-    include: {
-      customer: true,
-      package: true,
-      payments: true,
-      branch: true,
-    },
-    orderBy: { id: 'desc' },
-    take: 500,
-  });
+    const bookings = await prisma.booking.findMany({
+      where: whereCondition,
+      include: {
+        customer: true,
+        package: true,
+        payments: true,
+        branch: true,
+      },
+      orderBy: { id: 'desc' },
+      take: 500,
+    });
 
-  return NextResponse.json(bookings);
+    return NextResponse.json(bookings);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to fetch bookings' }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -99,7 +103,17 @@ export async function DELETE(request: Request) {
 
     if (!id) return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 });
 
+    // Safe relational cleanup before deleting booking
+    await prisma.payment.deleteMany({ where: { bookingId: id } });
+    await prisma.hotelAssignment.deleteMany({ where: { bookingId: id } });
+    await prisma.bookingFlight.deleteMany({ where: { bookingId: id } });
+    await prisma.visaRecord.updateMany({ where: { bookingId: id }, data: { bookingId: null } });
+
     await prisma.booking.delete({ where: { id } });
+
+    await prisma.activityLog.create({
+      data: { userId: session.id, action: 'Delete Booking', entityType: 'booking', entityId: id },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

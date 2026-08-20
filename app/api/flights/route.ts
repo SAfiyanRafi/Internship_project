@@ -3,17 +3,21 @@ import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const publicOnly = searchParams.get('public') === 'true';
+  try {
+    const { searchParams } = new URL(request.url);
+    const publicOnly = searchParams.get('public') === 'true';
 
-  const where = publicOnly ? { publicNotice: true } : {};
+    const where = publicOnly ? { publicNotice: true } : {};
 
-  const flights = await prisma.flight.findMany({
-    where,
-    orderBy: { departureAt: 'asc' },
-  });
+    const flights = await prisma.flight.findMany({
+      where,
+      orderBy: { departureAt: 'asc' },
+    });
 
-  return NextResponse.json(flights);
+    return NextResponse.json(flights);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to fetch flights' }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -42,9 +46,15 @@ export async function POST(request: Request) {
 
     if (id) {
       await prisma.flight.update({ where: { id }, data });
+      await prisma.activityLog.create({
+        data: { userId: session.id, action: 'Update Flight', entityType: 'flight', entityId: id },
+      });
       return NextResponse.json({ success: true, flightId: id });
     } else {
       const flight = await prisma.flight.create({ data });
+      await prisma.activityLog.create({
+        data: { userId: session.id, action: 'Create Flight', entityType: 'flight', entityId: flight.id },
+      });
       return NextResponse.json({ success: true, flightId: flight.id });
     }
   } catch (error: any) {
@@ -64,7 +74,12 @@ export async function DELETE(request: Request) {
 
     if (!id) return NextResponse.json({ error: 'Flight ID is required' }, { status: 400 });
 
+    await prisma.bookingFlight.deleteMany({ where: { flightId: id } });
     await prisma.flight.delete({ where: { id } });
+
+    await prisma.activityLog.create({
+      data: { userId: session.id, action: 'Delete Flight', entityType: 'flight', entityId: id },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

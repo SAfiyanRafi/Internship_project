@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import BookingsClient from '@/components/BookingsClient';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function BookingsPage() {

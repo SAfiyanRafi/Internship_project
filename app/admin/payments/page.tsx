@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import PaymentsClient from '@/components/PaymentsClient';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function PaymentsPage() {

@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import ExpensesClient from '@/components/ExpensesClient';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function ExpensesPage() {

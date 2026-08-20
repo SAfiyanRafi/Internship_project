@@ -3,17 +3,21 @@ import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const publicOnly = searchParams.get('public') === 'true';
+  try {
+    const { searchParams } = new URL(request.url);
+    const publicOnly = searchParams.get('public') === 'true';
 
-  const where = publicOnly ? { isPublic: true } : {};
+    const where = publicOnly ? { isPublic: true } : {};
 
-  const hotels = await prisma.hotel.findMany({
-    where,
-    orderBy: { id: 'desc' },
-  });
+    const hotels = await prisma.hotel.findMany({
+      where,
+      orderBy: { id: 'desc' },
+    });
 
-  return NextResponse.json(hotels);
+    return NextResponse.json(hotels);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to fetch hotels' }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -43,9 +47,15 @@ export async function POST(request: Request) {
 
     if (id) {
       await prisma.hotel.update({ where: { id }, data });
+      await prisma.activityLog.create({
+        data: { userId: session.id, action: 'Update Hotel', entityType: 'hotel', entityId: id },
+      });
       return NextResponse.json({ success: true, hotelId: id });
     } else {
       const hotel = await prisma.hotel.create({ data });
+      await prisma.activityLog.create({
+        data: { userId: session.id, action: 'Create Hotel', entityType: 'hotel', entityId: hotel.id },
+      });
       return NextResponse.json({ success: true, hotelId: hotel.id });
     }
   } catch (error: any) {
@@ -65,7 +75,12 @@ export async function DELETE(request: Request) {
 
     if (!id) return NextResponse.json({ error: 'Hotel ID is required' }, { status: 400 });
 
+    await prisma.hotelAssignment.deleteMany({ where: { hotelId: id } });
     await prisma.hotel.delete({ where: { id } });
+
+    await prisma.activityLog.create({
+      data: { userId: session.id, action: 'Delete Hotel', entityType: 'hotel', entityId: id },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
