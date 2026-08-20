@@ -4,9 +4,10 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
 [![Prisma ORM](https://img.shields.io/badge/Prisma_ORM-6.4-2D3748?style=flat-square&logo=prisma)](https://www.prisma.io/)
-[![SQLite](https://img.shields.io/badge/SQLite-Database-003B57?style=flat-square&logo=sqlite)](https://www.sqlite.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791?style=flat-square&logo=postgresql)](https://www.postgresql.org/)
+[![Vercel Ready](https://img.shields.io/badge/Vercel-Deployment_Ready-000000?style=flat-square&logo=vercel)](https://vercel.com/)
 
-A full-stack Travel & Tour management system built for **THABBA Travel & Tour Pvt Ltd**. Rebuilt from the ground up to replace legacy procedural PHP with a modern enterprise tech stack.
+A full-stack Travel & Tour management system built for **THABBA Travel & Tour Pvt Ltd**. Rebuilt from the ground up to replace legacy procedural PHP with a modern enterprise tech stack ready for 1-click deployment on **Vercel** with **PostgreSQL**.
 
 ---
 
@@ -44,44 +45,55 @@ A full-stack Travel & Tour management system built for **THABBA Travel & Tour Pv
 | **Framework** | [Next.js 14](https://nextjs.org/) (App Router, Server Components & API Routes) |
 | **Language** | [TypeScript](https://www.typescriptlang.org/) |
 | **Styling** | [Tailwind CSS](https://tailwindcss.com/) + Lucide Icons + Glassmorphism UI |
-| **Database & ORM** | [Prisma ORM](https://www.prisma.io/) with SQLite (Zero-config local setup, PostgreSQL/MySQL ready) |
+| **Database & ORM** | [Prisma ORM](https://www.prisma.io/) with **PostgreSQL** (Vercel Postgres, Neon, Supabase, Aiven) |
 | **Authentication** | HTTP-Only JWT Session Cookies (`jose` + `bcryptjs`) |
 | **Data Export** | Native CSV Stream Generator (`/api/export`) |
 
 ---
 
-## 🚀 Getting Started
+## ⚡ Deployment to Vercel (Step-by-Step)
 
-### Prerequisites
-- **Node.js**: `v18.x` or higher (`v24.x` recommended)
-- **npm**: `v9.x` or higher
+### Step 1: Create a PostgreSQL Database
+Create a free PostgreSQL database on **Vercel Postgres**, **Neon**, **Supabase**, or **Aiven**. Copy your database connection URL (starts with `postgresql://...`).
 
-### Installation & Setup
+### Step 2: Import Project into Vercel
+1. Go to [Vercel.com](https://vercel.com/) and click **Add New Project**.
+2. Select your repository: `SAfiyanRafi/Internship_project`.
+3. Under **Environment Variables**, add:
+   - `DATABASE_URL`: `postgresql://user:password@your-db-host.com:5432/thabba_travel`
+   - `JWT_SECRET`: `thabba_crm_secure_jwt_secret_key_2026_super_secret`
+4. Click **Deploy**.
 
-1. **Clone the Repository**:
+### Step 3: Run Database Migrations & Seed
+Run `npx prisma db push` and `npx tsx prisma/seed.ts` against your production PostgreSQL database:
+```bash
+npx prisma db push
+npx tsx prisma/seed.ts
+```
+
+---
+
+## 💻 Local Development
+
+1. **Clone & Install**:
    ```bash
    git clone https://github.com/SAfiyanRafi/Internship_project.git
    cd Internship_project
-   ```
-
-2. **Install Dependencies**:
-   ```bash
    npm install
    ```
 
-3. **Database Setup & Seeding**:
-   Push the Prisma schema to create the SQLite database (`dev.db`) and seed initial data:
+2. **Setup `.env`**:
+   Copy `.env.example` to `.env` and set your local or remote `DATABASE_URL`:
    ```bash
-   npx prisma db push
-   npx tsx prisma/seed.ts
+   cp .env.example .env
    ```
 
-4. **Run Development Server**:
+3. **Run Development Server**:
    ```bash
    npm run dev
    ```
 
-5. **Access Application**:
+4. **Access Portal**:
    - **Public Website**: [http://localhost:3000](http://localhost:3000)
    - **Staff CRM Login**: [http://localhost:3000/login](http://localhost:3000/login)
 
@@ -94,63 +106,6 @@ A full-stack Travel & Tour management system built for **THABBA Travel & Tour Pv
 | **Email** | `admin@thabba.local` |
 | **Password** | `1193` |
 | **Role** | Super Admin |
-
-*Note: You can change the password or add new staff members via the Staff & Permissions module in the CRM.*
-
----
-
-## 📁 Directory Structure
-
-```text
-├── app/
-│   ├── admin/                # Staff CRM pages & dashboard routes
-│   │   ├── bookings/
-│   │   ├── branches/
-│   │   ├── customers/
-│   │   ├── dashboard/
-│   │   ├── enquiries/
-│   │   ├── expenses/
-│   │   ├── flights/
-│   │   ├── groups/
-│   │   ├── hotels/
-│   │   ├── packages/
-│   │   ├── payments/
-│   │   ├── reports/
-│   │   ├── settings/
-│   │   ├── users/
-│   │   └── visas/
-│   ├── api/                  # REST API Endpoints (Auth, Exports, CRUD)
-│   ├── login/                # Staff authentication page
-│   ├── receipt/[id]/         # Print-optimized receipt page
-│   ├── globals.css           # Tailwind CSS directives & global utilities
-│   ├── layout.tsx            # App root layout
-│   └── page.tsx              # Public Landing Page
-├── components/               # Client UI components
-├── lib/                      # Auth, Prisma instance & formatters
-├── prisma/
-│   ├── schema.prisma         # Prisma database schema
-│   └── seed.ts               # Initial database seeder
-├── public/                   # Static assets & document uploads
-└── package.json
-```
-
----
-
-## ☁️ Production Deployment
-
-### Option 1: InfinityFree Hosting (Static Export)
-1. Ensure `next.config.mjs` is set to `output: 'export'`.
-2. Run the production export command:
-   ```bash
-   npm run build
-   ```
-3. Next.js creates an `out/` folder containing static HTML, CSS, and JavaScript.
-4. Upload all files inside the `out/` folder directly to the `htdocs/` folder on **InfinityFree** via FTP / FileZilla.
-
-### Option 2: Vercel / Render / Railway (Dynamic Full-Stack Node.js)
-1. Connect your GitHub repository `SAfiyanRafi/Internship_project` to [Vercel](https://vercel.com).
-2. Set environment variables (`DATABASE_URL` and `JWT_SECRET`).
-3. Deploy instantly with 1-click automatic GitHub integration.
 
 ---
 

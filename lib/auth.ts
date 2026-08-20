@@ -41,41 +41,29 @@ export async function verifyToken(token: string): Promise<UserSession | null> {
 }
 
 export async function getSession(): Promise<UserSession | null> {
-  try {
-    const cookieStore = cookies();
-    const token = cookieStore.get('auth_token')?.value;
-    if (!token) return null;
-    return verifyToken(token);
-  } catch (error) {
-    return null;
-  }
+  const cookieStore = cookies();
+  const token = cookieStore.get('auth_token')?.value;
+  if (!token) return null;
+  return verifyToken(token);
 }
 
 export async function setSession(user: UserSession): Promise<void> {
-  try {
-    const token = await signToken(user);
-    const cookieStore = cookies();
-    cookieStore.set('auth_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24, // 24 hours
-      path: '/',
-    });
-  } catch (error) {
-    console.error('Failed to set session cookie:', error);
-  }
+  const token = await signToken(user);
+  const cookieStore = cookies();
+  cookieStore.set('auth_token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24, // 24 hours
+    path: '/',
+  });
 }
 
 export async function clearSession(): Promise<void> {
-  try {
-    const cookieStore = cookies();
-    cookieStore.set('auth_token', '', {
-      httpOnly: true,
-      maxAge: 0,
-      path: '/',
-    });
-  } catch (error) {
-    console.error('Failed to clear session cookie:', error);
-  }
+  const cookieStore = cookies();
+  cookieStore.set('auth_token', '', {
+    httpOnly: true,
+    maxAge: 0,
+    path: '/',
+  });
 }

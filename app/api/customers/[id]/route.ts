@@ -2,10 +2,6 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 
-export function generateStaticParams() {
-  return [{ id: '1' }];
-}
-
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
