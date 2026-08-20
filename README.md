@@ -92,7 +92,7 @@ A full-stack Travel & Tour management system built for **THABBA Travel & Tour Pv
 | Field | Details |
 | :--- | :--- |
 | **Email** | `admin@thabba.local` |
-| **Password** | `ChangeMe123!` |
+| **Password** | `1193` |
 | **Role** | Super Admin |
 
 *Note: You can change the password or add new staff members via the Staff & Permissions module in the CRM.*

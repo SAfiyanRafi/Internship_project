@@ -37,11 +37,11 @@ async function main() {
     });
   }
 
-  // 3. Admin User (admin@thabba.local / ChangeMe123!)
-  const passwordHash = await bcrypt.hash('ChangeMe123!', 10);
+  // 3. Admin User (admin@thabba.local / 1193)
+  const passwordHash = await bcrypt.hash('1193', 10);
   await prisma.user.upsert({
     where: { email: 'admin@thabba.local' },
-    update: {},
+    update: { passwordHash },
     create: {
       branchId: branch.id,
       name: 'Administrator',

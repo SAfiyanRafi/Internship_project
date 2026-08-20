@@ -102,9 +102,6 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 pt-6 border-t border-slate-800 text-center">
-            <p className="text-xs text-slate-500 mb-3">
-              Default admin: <code className="text-amber-400 bg-slate-950 px-1.5 py-0.5 rounded">admin@thabba.local</code> / <code className="text-amber-400 bg-slate-950 px-1.5 py-0.5 rounded">ChangeMe123!</code>
-            </p>
             <Link
               href="/"
               className="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-amber-400 transition-colors"
