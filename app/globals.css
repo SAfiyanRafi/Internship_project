@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased font-sans transition-colors duration-200;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+}
+
+/* Light mode overrides for smooth theme switching */
+.light {
+  color-scheme: light;
+}
+
+.light .bg-slate-950 {
+  background-color: #f8fafc !important;
+}
+
+.light .bg-slate-900 {
+  background-color: #ffffff !important;
+}
+
+.light .bg-slate-950\/80 {
+  background-color: #f1f5f9 !important;
+}
+
+.light .bg-slate-950\/60 {
+  background-color: #f8fafc !important;
+}
+
+.light .border-slate-800 {
+  border-color: #e2e8f0 !important;
+}
+
+.light .border-slate-700 {
+  border-color: #cbd5e1 !important;
+}
+
+.light .text-white {
+  color: #0f172a !important;
+}
+
+.light .text-slate-300 {
+  color: #334155 !important;
+}
+
+.light .text-slate-400 {
+  color: #475569 !important;
+}
+
+.light .divide-slate-800 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #f1f5f9 !important;
+}
+
+.light .hover\:bg-slate-800\/50:hover {
+  background-color: #f8fafc !important;
+}
+
+.light .hover\:bg-slate-800:hover {
+  background-color: #f1f5f9 !important;
+}
+
+.light input:not([type="checkbox"]):not([type="radio"]), 
+.light select, 
+.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.gold-gradient {
+  background: linear-[#d9a91c];
+  background-image: linear-gradient(135deg, #f5d061 0%, #d9a91c 50%, #936310 100%);
+}
+
+.gold-text {
+  background: linear-gradient(135deg, #d9a91c 0%, #b88612 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
