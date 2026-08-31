@@ -40,3 +40,7 @@ next-env.d.ts
 # Uploads
 /public/uploads/*
 !/public/uploads/.gitkeep
+
+# Local Helper Scripts (ignored from GitHub)
+push_day.ps1
+scratch/
